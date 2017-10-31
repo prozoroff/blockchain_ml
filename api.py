@@ -5,10 +5,21 @@ from uuid import uuid4
 from blockchain import Blockchain
 import requests
 from flask import Flask, jsonify, request
+from titanic_model import TitanicModel
+import random
 
 app = Flask(__name__)
 node_identifier = str(uuid4()).replace('-', '')
-blockchain = Blockchain()
+blockchain = Blockchain(TitanicModel())
+
+from tflearn.data_utils import load_csv
+data, labels = load_csv('titanic_dataset.csv', target_column=0,
+                        categorical_labels=True, n_classes=2)
+
+def get_rand_data():
+    i = random.randint(0,len(data))
+    return [data[i], labels[i]]
+
 
 @app.route('/mine', methods=['GET'])
 def mine():
@@ -16,19 +27,12 @@ def mine():
     last_block = blockchain.last_block
     last_proof = last_block['proof']
     proof = blockchain.proof_of_work(last_proof)
-
-    blockchain.new_transaction(
-        sender="0",
-        recipient=node_identifier,
-        amount=1,
-    )
-
     block = blockchain.new_block(proof)
 
     response = {
         'message': "New Block Forged",
         'index': block['index'],
-        'transactions': block['transactions'],
+        'data': block['data'],
         'proof': block['proof'],
         'previous_hash': block['previous_hash'],
     }
@@ -36,16 +40,11 @@ def mine():
     return jsonify(response), 200
 
 
-@app.route('/transactions/new', methods=['POST'])
-def create_transaction():
-    values = request.get_json()
-
-    required = ['sender', 'recipient', 'amount']
-    if not all(k in values for k in required):
-        return 'Missing values', 400
-
-    index = blockchain.new_transaction(values['sender'], values['recipient'], values['amount'])
-    response = {'message': f'Transaction will be added to Block {index}'}
+@app.route('/data/new', methods=['GET'])
+def add_data():
+    new_data = get_rand_data()
+    index = blockchain.new_data(new_data[0], new_data[1])
+    response = {'message': f'Data will be added to Block {index}'}
 
     return jsonify(response), 201
 

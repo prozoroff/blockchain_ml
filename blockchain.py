@@ -2,6 +2,8 @@ from typing import Any, Dict, List, Optional
 from time import time
 import requests
 
+accuracy_threshold = .7
+
 class Blockchain:
     def __init__(self, model):
         self.current_data = []
@@ -96,21 +98,24 @@ class Blockchain:
         block_string = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
 
-    def proof_of_work(self, last_proof: int) -> int:
-        accuracy = 0
+    def proof_of_work(self, last_proof) -> int:
+        frozen_layer = self.get_frozen_layer()
         if last_proof != None:
+            self.model.freeze_layer(frozen_layer)
             self.model.set_weights(last_proof)
-        while accuracy < .7:
+        while not self.validate_proof_of_work(last_proof, self.model.get_weights()):
             self.model.fit()
-            accuracy = self.model.evaluate()
 
         return self.model.get_weights()
 
-    @staticmethod
-    def validate_proof_of_work(last_proof: int, proof: int) -> bool:
-        guess = f'{last_proof}{proof}'.encode()
-        guess_hash = hashlib.sha256(guess).hexdigest()
-        return guess_hash[:4] == "0000"
+    def validate_proof_of_work(self, last_proof, proof) -> bool:
+        frozen_layer = self.get_frozen_layer()
+        proof[frozen_layer-1] = last_proof[frozen_layer-1]
+        self.model.set_weights(proof)
+        return self.model.evaluate() > accuracy_threshold
+
+    def get_frozen_layer(self):
+        return (self.last_block['index'] % (len(self.model.get_sizes())-2)) + 1
 
     @staticmethod
     def get_blockchain_from_node(node):

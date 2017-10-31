@@ -3,16 +3,13 @@ import numpy as np
 import tensorflow as tf
 import tflearn
 
-eval_share = .1
-
 class Model:
     def __init__(self):
-        self.create_dnn(self.get_sizes())
+        self.create_dnn(None)
 
-    def set_training_data(self, data, labels, eval_indexes):
+    def set_training_data(self, data, labels):
         self.data = self.preprocess_data(data)
         self.labels = labels
-        self.eval_indexes = eval_indexes
         self.fill_datasets()
 
     def get_sizes(self):
@@ -26,6 +23,9 @@ class Model:
 
     def evaluate(self):
         return self.dnn.evaluate(self.test_X, self.test_y)
+
+    def freeze_layer(self, frozen_layer):
+        self.create_dnn(frozen_layer)
 
     def predict(self, X):
         return self.dnn.predict_label(X)
@@ -47,7 +47,7 @@ class Model:
         test_X = []
         test_y = []
         for i in range(len(self.data)):
-            if i in self.eval_indexes:
+            if i % 10 == 0:
                 test_X.append(self.data[i])
                 test_y.append(self.labels[i])
             else:
@@ -58,15 +58,17 @@ class Model:
         self.test_X = np.array(test_X, dtype=np.float32)
         self.test_y = np.array(test_y, dtype=np.float32)
 
-    def create_dnn(self, sizes):
+    def create_dnn(self, frozen_layer):
         tf.reset_default_graph()
+        sizes = self.get_sizes()
         ipt = tflearn.input_data(shape=[None, sizes[0]])
         config = []
 
         if len(sizes) > 2:
             config.append(tflearn.fully_connected(ipt, sizes[1]))
             for i in range(1, len(sizes)-2):
-                config.append(tflearn.fully_connected(config[-1], sizes[i+1]))
+                trainable = False if i == frozen_layer else True
+                config.append(tflearn.fully_connected(config[-1], sizes[i+1], trainable=trainable))
 
         out = tflearn.fully_connected(config[-1], sizes[-1], activation='softmax')
         config.append(out)
