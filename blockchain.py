@@ -1,6 +1,8 @@
 from typing import Any, Dict, List, Optional
 from time import time
 import requests
+import json
+import hashlib
 
 accuracy_threshold = .7
 
@@ -95,22 +97,37 @@ class Blockchain:
 
     @staticmethod
     def hash(block: Dict[str, Any]) -> str:
-        block_string = json.dumps(block, sort_keys=True).encode()
+        block_string = json.dumps(block['previous_hash'], sort_keys=True).encode()
         return hashlib.sha256(block_string).hexdigest()
 
     def proof_of_work(self, last_proof) -> int:
-        frozen_layer = self.get_frozen_layer()
+
+        all_data = self.get_all_data()
+
+        if len(all_data['X']) == 0:
+            return None
+
+        self.model.set_training_data(all_data['X'], all_data['y'])
+
         if last_proof != None:
+            frozen_layer = self.get_frozen_layer()
             self.model.freeze_layer(frozen_layer)
             self.model.set_weights(last_proof)
+
         while not self.validate_proof_of_work(last_proof, self.model.get_weights()):
             self.model.fit()
 
         return self.model.get_weights()
 
     def validate_proof_of_work(self, last_proof, proof) -> bool:
-        frozen_layer = self.get_frozen_layer()
-        proof[frozen_layer-1] = last_proof[frozen_layer-1]
+
+        all_data = self.get_all_data()
+        self.model.set_training_data(all_data['X'], all_data['y'])
+
+        if last_proof != None:
+            frozen_layer = self.get_frozen_layer()
+            proof[frozen_layer-1] = last_proof[frozen_layer-1]
+
         self.model.set_weights(proof)
         return self.model.evaluate() > accuracy_threshold
 

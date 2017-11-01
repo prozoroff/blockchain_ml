@@ -27,13 +27,12 @@ def mine():
     last_block = blockchain.last_block
     last_proof = last_block['proof']
     proof = blockchain.proof_of_work(last_proof)
-    block = blockchain.new_block(proof)
+    block = blockchain.new_block(proof, blockchain.hash(last_block))
 
     response = {
         'message': "New Block Forged",
         'index': block['index'],
-        'data': block['data'],
-        'proof': block['proof'],
+        'data_len': len(block['data']),
         'previous_hash': block['previous_hash'],
     }
 
@@ -48,10 +47,22 @@ def add_data():
 
     return jsonify(response), 201
 
+@app.route('/data/all', methods=['GET'])
+def get_data():
+    all_data = blockchain.get_all_data()
+    response = {'message': str(all_data)}
+
+    return jsonify(response), 201
+
 
 @app.route('/chain', methods=['GET'])
 def get_full_blockchain():
-    return jsonify(blockchain.chain), 200
+    return jsonify(list(map(lambda x: {
+            'index': x['index'],
+            'timestamp': x['timestamp'],
+            'data_len': len(x['data']),
+            'previous_hash': x['previous_hash'],
+        }, blockchain.chain))), 200
 
 
 @app.route('/nodes/register', methods=['POST'])
