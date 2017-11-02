@@ -26,13 +26,14 @@ def mine():
 
     last_block = blockchain.last_block
     last_proof = last_block['proof']
-    proof = blockchain.proof_of_work(last_proof)
-    block = blockchain.new_block(proof, blockchain.hash(last_block))
+    proof_and_accuracy = blockchain.proof_of_work(last_proof)
+    block = blockchain.new_block(proof_and_accuracy[0], proof_and_accuracy[1], blockchain.hash(last_block))
 
     response = {
         'message': "New Block Forged",
         'index': block['index'],
-        'data_len': len(block['data']),
+        'data_len':  len(block['data']),
+        'accuracy': proof_and_accuracy[1],
         'previous_hash': block['previous_hash'],
     }
 
@@ -41,8 +42,9 @@ def mine():
 
 @app.route('/data/new', methods=['GET'])
 def add_data():
-    new_data = get_rand_data()
-    index = blockchain.new_data(new_data[0], new_data[1])
+    for i in range(10):
+        new_data = get_rand_data()
+        index = blockchain.new_data(new_data[0], new_data[1])
     response = {'message': f'Data will be added to Block {index}'}
 
     return jsonify(response), 201
@@ -61,6 +63,7 @@ def get_full_blockchain():
             'index': x['index'],
             'timestamp': x['timestamp'],
             'data_len': len(x['data']),
+            'accuracy': x['accuracy'],
             'previous_hash': x['previous_hash'],
         }, blockchain.chain))), 200
 

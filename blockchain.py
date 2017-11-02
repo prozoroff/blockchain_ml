@@ -12,7 +12,7 @@ class Blockchain:
         self.chain = []
         self.nodes = set()
         self.model = model
-        self.new_block(previous_hash='1', proof=None)
+        self.new_block(previous_hash='1', proof=None, accuracy=None)
 
     def register_node(self, address: str) -> None:
         parsed_url = urlparse(address)
@@ -58,13 +58,14 @@ class Blockchain:
 
         return False
 
-    def new_block(self, proof: int, previous_hash: Optional[str]) -> Dict[str, Any]:
+    def new_block(self, proof: int, accuracy: float, previous_hash: Optional[str]) -> Dict[str, Any]:
 
         block = {
             'index': len(self.chain) + 1,
             'timestamp': time(),
             'data': self.current_data,
             'proof': proof,
+            'accuracy': accuracy,
             'previous_hash': previous_hash or self.hash(self.chain[-1]),
         }
 
@@ -105,7 +106,7 @@ class Blockchain:
         all_data = self.get_all_data()
 
         if len(all_data['X']) == 0:
-            return None
+            return [None, None]
 
         self.model.set_training_data(all_data['X'], all_data['y'])
 
@@ -117,7 +118,7 @@ class Blockchain:
         while not self.validate_proof_of_work(last_proof, self.model.get_weights()):
             self.model.fit()
 
-        return self.model.get_weights()
+        return [self.model.get_weights(), self.model.evaluate()[0]]
 
     def validate_proof_of_work(self, last_proof, proof) -> bool:
 
@@ -129,7 +130,9 @@ class Blockchain:
             proof[frozen_layer-1] = last_proof[frozen_layer-1]
 
         self.model.set_weights(proof)
-        return self.model.evaluate() > accuracy_threshold
+        evaluation = self.model.evaluate()[0]
+        print('Current accuracy', evaluation)
+        return evaluation > accuracy_threshold
 
     def get_frozen_layer(self):
         return (self.last_block['index'] % (len(self.model.get_sizes())-2)) + 1
