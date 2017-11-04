@@ -59,13 +59,7 @@ def get_data():
 
 @app.route('/chain', methods=['GET'])
 def get_full_blockchain():
-    return jsonify(list(map(lambda x: {
-            'index': x['index'],
-            'timestamp': x['timestamp'],
-            'data_len': len(x['data']),
-            'accuracy': x['accuracy'],
-            'previous_hash': x['previous_hash'],
-        }, blockchain.chain))), 200
+    return jsonify(readable_blockchain()), 200
 
 
 @app.route('/nodes/register', methods=['POST'])
@@ -86,6 +80,10 @@ def register_nodes():
     
     return jsonify(response), 201
 
+@app.route('/nodes/all', methods=['GET'])
+def get_known_nodes():
+    return jsonify(list(blockchain.nodes)), 200
+
 
 @app.route('/nodes/resolve', methods=['GET'])
 def consensus():
@@ -94,16 +92,24 @@ def consensus():
     if replaced:
         response = {
             'message': 'Our chain was replaced',
-            'new_chain': blockchain.chain
+            'new_chain': readable_blockchain()
         }
     else:
         response = {
             'message': 'Our chain is authoritative',
-            'chain': blockchain.chain
+            'chain': readable_blockchain()
         }
 
     return jsonify(response), 200
 
+def readable_blockchain():
+    return list(map(lambda x: {
+            'index': x['index'],
+            'timestamp': x['timestamp'],
+            'data_len': len(x['data']),
+            'accuracy': x['accuracy'],
+            'previous_hash': x['previous_hash'],
+        }, blockchain.chain))
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

@@ -3,6 +3,7 @@ from time import time
 import requests
 import json
 import hashlib
+from urllib.parse import urlparse
 
 accuracy_threshold = .7
 
@@ -45,7 +46,7 @@ class Blockchain:
         max_length = len(self.chain)
 
         for node in neighbours:
-            node_chain = get_blockchain_from_node(node)
+            node_chain = self.get_blockchain_from_node(node)
             length = len(node_chain)
 
             if length > max_length and self.validate_blockchain(node_chain):
@@ -137,11 +138,10 @@ class Blockchain:
     def get_frozen_layer(self):
         return (self.last_block['index'] % (len(self.model.get_sizes())-2)) + 1
 
-    @staticmethod
-    def get_blockchain_from_node(node):
+    def get_blockchain_from_node(self,node):
         response = requests.get(f'http://{node}/chain')
 
         if response.status_code == 200:
-            return response.json()['chain']
+            return response.json()
         
         return None
