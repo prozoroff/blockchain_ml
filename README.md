@@ -23,10 +23,26 @@ To add new data for learning (randomly selected) - GET request to:
 http://localhost:5000/data/new
 ```
 
+```
+{
+    "message": "Data will be added to Block 3"
+}
+```
+
 To mine new block - GET request to:
 
 ```
 http://localhost:5000/mine
+```
+
+```
+{
+    "accuracy": 0.7142857313156128,
+    "data_len": 40,
+    "index": 3,
+    "message": "New Block Forged",
+    "previous_hash": "1d6a362824666a8917940ee5541b00c3f893d2ce1fe68a9983456582d7023ab1"
+}
 ```
 
 To get current blockchain - GET request to:
